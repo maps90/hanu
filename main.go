@@ -110,9 +110,11 @@ func (b *Bot) searchCommand(msg Message) {
 		cmd = b.Commands[i]
 
 		match, err := cmd.Get().Match(msg.Text())
-		if err == nil {
-			cmd.Handle(NewConversation(match, msg, b.Socket))
+		if err != nil {
+			b.sendHelp(msg)
+			return
 		}
+		cmd.Handle(NewConversation(match, msg, b.Socket))
 	}
 }
 
@@ -145,6 +147,9 @@ func (b *Bot) Listen() {
 	var msg Message
 
 	for {
+		if !b.Socket.IsClientConn() {
+			b, _ = New(b.Token)
+		}
 		if websocket.JSON.Receive(b.Socket, &msg) == nil {
 			go b.process(msg)
 
