@@ -104,17 +104,20 @@ func (b *Bot) process(message Message) {
 
 // Search for a command matching the message
 func (b *Bot) searchCommand(msg Message) {
+	var matched bool
 	var cmd CommandInterface
 
 	for i := 0; i < len(b.Commands); i++ {
 		cmd = b.Commands[i]
 
 		match, err := cmd.Get().Match(msg.Text())
-		if err != nil {
-			b.sendHelp(msg)
-			return
+		if err == nil {
+			matched = true
+			cmd.Handle(NewConversation(match, msg, b.Socket))
 		}
-		cmd.Handle(NewConversation(match, msg, b.Socket))
+	}
+	if !matched {
+		b.sendHelp(msg)
 	}
 }
 
@@ -147,9 +150,13 @@ func (b *Bot) Listen() {
 	var msg Message
 
 	for {
-		if !b.Socket.IsClientConn() {
-			b, _ = New(b.Token)
+		if !b.Socket.IsServerConn() {
+			z, err := b.reconnect()
+			if err == nil {
+				b = z
+			}
 		}
+
 		if websocket.JSON.Receive(b.Socket, &msg) == nil {
 			go b.process(msg)
 
@@ -157,6 +164,10 @@ func (b *Bot) Listen() {
 			msg = Message{}
 		}
 	}
+}
+
+func (b *Bot) reconnect() (*Bot, error) {
+	return New(b.Token)
 }
 
 // Command adds a new command with custom handler
