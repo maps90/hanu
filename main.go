@@ -150,12 +150,14 @@ func (b *Bot) Listen() {
 	var msg Message
 
 	for {
-		if websocket.JSON.Receive(b.Socket, &msg) == nil {
-			go b.process(msg)
-
-			// Clean up message after processign it
-			msg = Message{}
+		err := websocket.JSON.Receive(b.Socket, &msg)
+		if err != nil {
+			b.Handshake()
 		}
+		go b.process(msg)
+
+		// Clean up message after processign it
+		msg = Message{}
 	}
 }
 
