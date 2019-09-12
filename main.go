@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -149,23 +148,8 @@ func (b *Bot) sendHelp(msg Message) {
 // Listen for message on socket
 func (b *Bot) Listen() {
 	var msg Message
-	pongWait := 60 * time.Second
-	pingPeriod := (pongWait * 9) / 10
-
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-	}()
 
 	for {
-		select {
-		case <-ticker.C:
-			if websocket.JSON.Send(b.Socket, "ping") != nil {
-				z, _ := b.Handshake()
-				z.Commands = b.Commands
-				b = z
-			}
-		}
 		if websocket.JSON.Receive(b.Socket, &msg) == nil {
 			go b.process(msg)
 
